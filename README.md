@@ -7,6 +7,13 @@ Train a velocity-tracking flat-ground locomotion policy for the **Trakr** quadru
 This repo is a self-contained Isaac Lab task package: robot asset, environment + reward config,
 RL agent config, the trained policy, and the setup needed to run it on Isaac Sim 6.0.
 
+## Demo
+
+![Trakr walking — trained on the NVIDIA Newton engine](media/trakr_walk.gif)
+
+*Trakr flat-ground velocity locomotion — trained end-to-end on the **Newton** backend and rendered
+live in the **Newton viewer** (no RTX/Kit renderer). Full-quality clip: [`media/trakr_walk.mp4`](media/trakr_walk.mp4).*
+
 ---
 
 ## Why Newton
