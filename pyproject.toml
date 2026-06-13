@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trakr-locomotion"
+version = "0.1.0"
+description = "Trakr quadruped flat/rough velocity-locomotion tasks for Isaac Lab (Newton backend)"
+readme = "README.md"
+requires-python = ">=3.10"
+# NOTE: isaaclab / isaaclab_tasks / isaaclab_newton / isaaclab_physx are provided by the
+# Isaac Lab install (v3.0.0-beta) and are intentionally NOT listed here.
+
+[tool.setuptools]
+packages = ["trakr_locomotion", "trakr_locomotion.agents"]
+
+[tool.setuptools.package-data]
+# the USD asset tree lives outside the package; it is referenced by absolute path at runtime.
