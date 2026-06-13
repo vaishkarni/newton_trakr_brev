@@ -31,6 +31,12 @@ asset → train → play → visualize pipeline that runs without the Omniverse 
 | `track_lin_vel_xy_exp` | **1.12** |
 | `track_ang_vel_z_exp` | **0.56** |
 
+![TensorBoard — Trakr flat locomotion training metrics](media/tensorboard_trakr_flat.png)
+
+*TensorBoard episode-reward and termination curves (2048 envs × 300 iters, Newton backend). Reward
+climbs −2 → ~20; episode length saturates at the cap by ~iter 50 (stops falling); the velocity-tracking
+terms `track_lin_vel_xy_exp` / `track_ang_vel_z_exp` rise steadily — trakr learning to walk.*
+
 ---
 
 ## The robot
