@@ -338,8 +338,10 @@ cat > "$TARGET_HOME/trakr_play_web.sh" <<'EOF'
 # Usage: ~/trakr_play_web.sh [num_envs=16] [extra args, e.g. --checkpoint path]
 set -e; source ~/trakr_common.sh
 NUM=${1:-16}; shift || true
+# Isaac Lab's play.py otherwise looks for a run under logs/rsl_rl/trakr_flat; default to the shipped policy
+CKPT=(); case " $* " in *" --checkpoint "*) ;; *) CKPT=(--checkpoint "$TRAKR_PATH/exported/model_299.pt");; esac
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/play.py" \
-  --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs "$NUM" presets=newton --viz viser "$@"
+  --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs "$NUM" presets=newton --viz viser "${CKPT[@]}" "$@"
 EOF
 cat > "$TARGET_HOME/trakr_play.sh" <<'EOF'
 #!/bin/bash
@@ -347,8 +349,10 @@ cat > "$TARGET_HOME/trakr_play.sh" <<'EOF'
 # Usage: ~/trakr_play.sh [num_envs=16] [extra args, e.g. --checkpoint path]
 set -e; source ~/trakr_common.sh
 NUM=${1:-16}; shift || true
+# Isaac Lab's play.py otherwise looks for a run under logs/rsl_rl/trakr_flat; default to the shipped policy
+CKPT=(); case " $* " in *" --checkpoint "*) ;; *) CKPT=(--checkpoint "$TRAKR_PATH/exported/model_299.pt");; esac
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/play.py" \
-  --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs "$NUM" presets=newton --viz newton "$@"
+  --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs "$NUM" presets=newton --viz newton "${CKPT[@]}" "$@"
 EOF
 cat > "$TARGET_HOME/trakr_tensorboard.sh" <<'EOF'
 #!/bin/bash
@@ -363,7 +367,7 @@ chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"/trakr_*.sh
 if [ "$WARMUP" = "1" ]; then
   log "Warm-up: headless play for up to 8 min (first Kit start loads extensions / compiles kernels) ..."
   set +e
-  in_venv "cd '$LAB' && timeout 480 ./isaaclab.sh -p '$TRAKR/scripts/play.py' --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs 16 presets=newton" >>"$LOG" 2>&1
+  in_venv "cd '$LAB' && timeout 480 ./isaaclab.sh -p '$TRAKR/scripts/play.py' --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs 16 presets=newton --checkpoint '$TRAKR/exported/model_299.pt'" >>"$LOG" 2>&1
   RC=$?; set -e
   if [ $RC -eq 124 ]; then log "Warm-up ran until the timeout (good: the sim loop was running)";
   elif [ $RC -eq 0 ]; then log "Warm-up finished";
@@ -387,6 +391,7 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_play_web.sh 16 --checkpoint ~/IsaacLab/logs/rsl_rl/trakr_flat/<run>/model_299.pt
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
 
+The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
 First launch takes 1-3 min (Kit extensions + warp kernel compile), later launches ~30 s.
 The Viser page is empty until the sim loop starts; reload it if it was opened too early.
 Newton GL viewer keys: W/A/S/D move, Q/E down/up, left-drag rotate, scroll zoom, H sidebar, ESC quit.
