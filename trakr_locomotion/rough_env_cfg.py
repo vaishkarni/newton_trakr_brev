@@ -1,6 +1,8 @@
 # Copyright (c) 2026, NVIDIA SAE India. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+
 from isaaclab.utils import configclass
 
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
@@ -11,6 +13,33 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import (
 from isaaclab_tasks.utils import PresetCfg
 
 from trakr_locomotion.trakr_cfg import TRAKR_CFG
+
+
+def _capped_visualizer_cfgs() -> list:
+    """Visualizer configs that draw only the first ``TRAKR_VIZ_WORLDS`` environments.
+
+    Drawing all 2048 training envs in the Newton GL viewer drops it to ~2 FPS and stalls training.
+    On Isaac Lab v3.0.0-beta the ``--visualizer_max_worlds`` CLI override is written to a Kit
+    settings store that the kitless (Newton) simulation context never reads, so the cap is put in
+    the env config instead. Only active when the env var is set; ``--viz`` still selects the viewer.
+    """
+    n = os.environ.get("TRAKR_VIZ_WORLDS")
+    if not n:
+        return []
+    cfgs = []
+    try:
+        from isaaclab_visualizers.newton import NewtonVisualizerCfg
+
+        cfgs.append(NewtonVisualizerCfg(max_worlds=int(n)))
+    except ImportError:
+        pass
+    try:
+        from isaaclab_visualizers.viser import ViserVisualizerCfg
+
+        cfgs.append(ViserVisualizerCfg(max_worlds=int(n)))
+    except ImportError:
+        pass
+    return cfgs
 
 
 @configclass
@@ -57,6 +86,9 @@ class TrakrRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
 
         self.scene.robot = TRAKR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        viz = _capped_visualizer_cfgs()
+        if viz:
+            self.sim.visualizer_cfgs = viz
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
         # scale down the terrains because the robot is small
         self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.1)

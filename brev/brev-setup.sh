@@ -340,6 +340,7 @@ cat > "$TARGET_HOME/trakr_train_live.sh" <<'EOF'
 # Only the first WORLDS envs are drawn; training is slower than headless. Usage: ~/trakr_train_live.sh [iters=300] [num_envs=2048] [worlds=16]
 set -e; source ~/trakr_common.sh
 IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
+export TRAKR_VIZ_WORLDS=$WORLDS   # cap is applied via the env config (see trakr_locomotion/rough_env_cfg.py)
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
   --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
   --viz viser --visualizer_max_worlds "$WORLDS" "$@"
@@ -347,10 +348,11 @@ EOF
 cat > "$TARGET_HOME/trakr_train_gl.sh" <<'EOF'
 #!/bin/bash
 # Training in the Newton OpenGL viewer on the noVNC desktop (recordable with RECORD=<sec> or ~/trakr_record.sh).
-# Only the first WORLDS envs are drawn: drawing all 2048 drops the viewer to ~2 FPS and stalls training.
+# Only the first WORLDS envs are drawn (TRAKR_VIZ_WORLDS): drawing all 2048 drops the viewer to ~2 FPS and stalls training.
 # Usage: RECORD=60 ~/trakr_train_gl.sh [iters=300] [num_envs=2048] [worlds=16]
 set -e; source ~/trakr_common.sh
 IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
+export TRAKR_VIZ_WORLDS=$WORLDS   # cap is applied via the env config (see trakr_locomotion/rough_env_cfg.py)
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
   --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
   --viz newton --visualizer_max_worlds "$WORLDS" "$@"
