@@ -9,7 +9,7 @@ from isaaclab.utils import configclass
 
 from isaaclab_tasks.utils import PresetCfg
 
-from trakr_locomotion.rough_env_cfg import TrakrRoughEnvCfg
+from trakr_locomotion.rough_env_cfg import TrakrRoughEnvCfg, _apply_viz_cap
 
 
 @configclass
@@ -51,6 +51,7 @@ class TrakrFlatEnvCfg(TrakrRoughEnvCfg):
         self.scene.height_scanner = None
         self.observations.policy.height_scan = None
         self.curriculum.terrain_levels = None
+        _apply_viz_cap(self)
 
 
 class TrakrFlatEnvCfg_PLAY(TrakrFlatEnvCfg):
@@ -62,3 +63,4 @@ class TrakrFlatEnvCfg_PLAY(TrakrFlatEnvCfg):
         self.observations.policy.enable_corruption = False
         self.events.base_external_force_torque = None
         self.events.push_robot = None
+        _apply_viz_cap(self)  # num_envs changed above

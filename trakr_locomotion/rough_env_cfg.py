@@ -1,7 +1,9 @@
 # Copyright (c) 2026, NVIDIA SAE India. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import importlib
 import os
+import sys
 
 from isaaclab.utils import configclass
 
@@ -15,31 +17,66 @@ from isaaclab_tasks.utils import PresetCfg
 from trakr_locomotion.trakr_cfg import TRAKR_CFG
 
 
-def _capped_visualizer_cfgs() -> list:
-    """Visualizer configs that draw only the first ``TRAKR_VIZ_WORLDS`` environments.
+def _cli_num_envs(default: int) -> int:
+    """``--num_envs`` from the command line (train.py/play.py apply it after ``__post_init__``)."""
+    argv = sys.argv
+    for i, a in enumerate(argv):
+        if a == "--num_envs" and i + 1 < len(argv):
+            return int(argv[i + 1])
+        if a.startswith("--num_envs="):
+            return int(a.split("=", 1)[1])
+    return default
+
+
+def _capped_visualizer_cfgs(num_envs: int, env_spacing: float) -> list:
+    """Visualizer configs that draw only the first ``TRAKR_VIZ_WORLDS`` environments, camera aimed at them.
 
     Drawing all 2048 training envs in the Newton GL viewer drops it to ~2 FPS and stalls training.
     On Isaac Lab v3.0.0-beta the ``--visualizer_max_worlds`` CLI override is written to a Kit
     settings store that the kitless (Newton) simulation context never reads, so the cap is put in
-    the env config instead. Only active when the env var is set; ``--viz`` still selects the viewer.
+    the env config instead. The drawn envs are the first N of the env grid (a corner of it for
+    large ``num_envs``), so the camera is pointed at their centroid. Only active when the env var
+    is set; ``--viz`` still selects the viewer.
     """
     n = os.environ.get("TRAKR_VIZ_WORLDS")
     if not n:
         return []
+    n = int(n)
+    num_envs = _cli_num_envs(num_envs)
+    cam_pos = cam_tgt = None
+    try:
+        from isaaclab.cloner import grid_transforms
+
+        origins, _ = grid_transforms(num_envs, env_spacing, device="cpu")
+        first = origins[: min(n, num_envs)]
+        c = first.mean(0).tolist()
+        span = (first.max(0).values - first.min(0).values).tolist()
+        # view the drawn group from the side perpendicular to its longer extent
+        off = (0.0, -18.0, 8.0) if span[0] >= span[1] else (-18.0, 0.0, 8.0)
+        cam_tgt = (c[0], c[1], 0.3)
+        cam_pos = (c[0] + off[0], c[1] + off[1], off[2])
+    except Exception:  # noqa: BLE001 - camera placement is best-effort
+        pass
     cfgs = []
-    try:
-        from isaaclab_visualizers.newton import NewtonVisualizerCfg
-
-        cfgs.append(NewtonVisualizerCfg(max_worlds=int(n)))
-    except ImportError:
-        pass
-    try:
-        from isaaclab_visualizers.viser import ViserVisualizerCfg
-
-        cfgs.append(ViserVisualizerCfg(max_worlds=int(n)))
-    except ImportError:
-        pass
+    for mod, cls in (
+        ("isaaclab_visualizers.newton", "NewtonVisualizerCfg"),
+        ("isaaclab_visualizers.viser", "ViserVisualizerCfg"),
+    ):
+        try:
+            cfg_cls = getattr(importlib.import_module(mod), cls)
+        except (ImportError, AttributeError):
+            continue
+        kwargs = {"max_worlds": n}
+        if cam_pos is not None and hasattr(cfg_cls, "camera_position"):
+            kwargs.update(camera_position=cam_pos, camera_target=cam_tgt)
+        cfgs.append(cfg_cls(**kwargs))
     return cfgs
+
+
+def _apply_viz_cap(env_cfg) -> None:
+    viz = _capped_visualizer_cfgs(env_cfg.scene.num_envs, env_cfg.scene.env_spacing)
+    if viz:
+        env_cfg.sim.visualizer_cfgs = viz
 
 
 @configclass
@@ -86,9 +123,7 @@ class TrakrRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
 
         self.scene.robot = TRAKR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-        viz = _capped_visualizer_cfgs()
-        if viz:
-            self.sim.visualizer_cfgs = viz
+        _apply_viz_cap(self)
         self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/base"
         # scale down the terrains because the robot is small
         self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_height_range = (0.025, 0.1)
@@ -127,3 +162,4 @@ class TrakrRoughEnvCfg_PLAY(TrakrRoughEnvCfg):
         self.observations.policy.enable_corruption = False
         self.events.base_external_force_torque = None
         self.events.push_robot = None
+        _apply_viz_cap(self)  # num_envs changed above
