@@ -20,6 +20,7 @@
 #        trakr_play_web.sh     trained policy in the Viser web viewer on 8080
 #        trakr_play.sh         trained policy in the Newton OpenGL viewer on the noVNC desktop
 #        trakr_tensorboard.sh  TensorBoard on 6006
+#        trakr_record.sh       record the desktop (GL viewer) to ~/outputs/*.mp4 (ffmpeg x11grab + NVENC)
 #   6. Optional 3-min headless warm-up (warp kernel cache); ~/WORKSHOP.md sheet
 #
 # Launch parameters (Brev "Launch Parameters" -> env vars), all optional:
@@ -80,7 +81,7 @@ log "glibc $GLIBC OK; RAM $(free -g | awk '/Mem/{print $2}') GiB; disk free $(df
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null
 apt-get install -y -qq --no-install-recommends git curl ca-certificates build-essential cmake \
-  libgl1 libglu1-mesa libxrandr2 libxinerama1 libxcursor1 libxi6 libegl1 >>"$LOG" 2>&1
+  libgl1 libglu1-mesa libxrandr2 libxinerama1 libxcursor1 libxi6 libegl1 ffmpeg >>"$LOG" 2>&1
 
 # ------------------------------------------------- 2. the kit / task repo in the user's home
 # The Launchable clones this repo before running us; if that clone is not in TARGET_HOME
@@ -360,7 +361,28 @@ cat > "$TARGET_HOME/trakr_tensorboard.sh" <<'EOF'
 source ~/trakr_common.sh
 exec ./isaaclab.sh -p -m tensorboard.main --logdir logs/rsl_rl --host 0.0.0.0 --port 6006
 EOF
+cat > "$TARGET_HOME/trakr_record.sh" <<'EOF'
+#!/bin/bash
+# Record the VM desktop (e.g. the Newton GL viewer from ~/trakr_play.sh) to ~/outputs/<name>_<stamp>.mp4.
+# Captured on the node at 30 fps, so the clip is smooth even when noVNC looks choppy.
+# Usage: ~/trakr_record.sh [seconds=20] [name=trakr]     (run it in a second terminal while the viewer is open)
+set -e
+SEC=${1:-20}; NAME=${2:-trakr}
+export DISPLAY=:0
+OUT=$HOME/outputs; mkdir -p "$OUT"
+F="$OUT/${NAME}_$(date +%Y%m%d_%H%M%S).mp4"
+RES=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}'); RES=${RES:-1920x1080}
+if ffmpeg -hide_banner -loglevel error -f lavfi -i nullsrc=s=64x64 -t 0.1 -c:v h264_nvenc -f null - 2>/dev/null; then
+  ENC=(-c:v h264_nvenc -preset p4 -b:v 8M)          # GPU encoder
+else
+  ENC=(-c:v libx264 -preset veryfast -crf 20)       # CPU fallback
+fi
+echo "recording $RES for ${SEC}s -> $F (${ENC[1]})"
+ffmpeg -hide_banner -loglevel error -y -f x11grab -framerate 30 -video_size "$RES" -i :0 -t "$SEC" "${ENC[@]}" -pix_fmt yuv420p -movflags +faststart "$F"
+echo "saved $F ($(du -h "$F" | cut -f1))"
+EOF
 chmod +x "$TARGET_HOME"/trakr_*.sh
+install -d -o "$TARGET_USER" -g "$TARGET_USER" "$TARGET_HOME/outputs"
 chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"/trakr_*.sh
 
 # ------------------------------------------------- 8. warm-up (headless; caches Kit extensions + warp kernels)
@@ -390,6 +412,8 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_tensorboard.sh       # curves on the 'tensorboard' link
     ~/trakr_play_web.sh 16 --checkpoint ~/IsaacLab/logs/rsl_rl/trakr_flat/<run>/model_299.pt
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
+    ~/trakr_record.sh 20         # in a 2nd terminal: record the desktop for 20 s -> ~/outputs/trakr_<stamp>.mp4
+    ~/trakr_train.sh 100 2048 --viz newton   # training in the GL viewer (recordable the same way)
 
 The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
 Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
@@ -397,6 +421,8 @@ The Viser page is empty until the sim loop starts; reload it if it was opened to
 Newton GL viewer keys: W/A/S/D move, Q/E down/up, left-drag rotate, scroll zoom, H sidebar, ESC quit.
 Rough terrain: --task Isaac-Velocity-Rough-Trakr-v0 / -Play-v0.
 
+Clips in ~/outputs are smooth 30 fps captures made on the node (noVNC playback may look choppy).
+Download: brev copy or scp from your laptop, e.g.  scp <instance>:outputs/trakr_*.mp4 .
 Paths: Isaac Lab ~/IsaacLab (venv env_isaaclab, launcher ./isaaclab.sh -p), repo ~/newton_trakr_brev.
 presets=newton is required on Sim 6.0. Setup log: $LOG. Desktop service: gpu-desktop.
 EOF
