@@ -54,7 +54,7 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 | `~/trakr_train.sh 40` | 0.7 s/iteration at 2048 envs (300 iterations = ~3.5 min), checkpoints in `logs/rsl_rl/trakr_flat/<run>/` |
 | `~/trakr_tensorboard.sh` | port 6006 |
 | `~/trakr_train_live.sh 30` | Viser on 8080 during training, ~1.2 s/iteration (16 worlds drawn) |
-| `RECORD=60 ~/trakr_train_gl.sh 150 2048 16` | 2048 envs trained at 0.46 s/iteration while the GL viewer draws 16 of them at ~50 FPS; 60 s NVENC clip (18 MB) in `~/outputs/train/` |
+| `RECORD=1 ~/trakr_train_gl.sh 150 2048 16` | 2048 envs trained at 0.46 s/iteration while the GL viewer draws 16 of them at ~50 FPS; 60 s NVENC clip (18 MB) in `~/outputs/train/` |
 
 Isaac Lab runs the Newton backend in **kitless mode** (no Kit/RTX start), so launches take about a minute.
 noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs at 60+ FPS on the node.
@@ -89,8 +89,8 @@ noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs
   `--visualizer_max_worlds` flag is ignored in kitless mode on v3.0.0-beta (it goes to a Kit settings store).
 - **Video clips:** `~/trakr_record.sh [seconds=60] [name]` records the VM desktop (the Newton GL viewer) with
   ffmpeg x11grab + NVENC at 30 fps. It detects what is running and files the clip under `~/outputs/train/` or
-  `~/outputs/play/`. Or start the recording automatically with the helpers: `RECORD=60 ~/trakr_play.sh` and
-  `RECORD=60 ~/trakr_train_gl.sh 150` (training in the GL viewer with 16 of the 2048 envs drawn; drawing all of
+  `~/outputs/play/`. Or start the recording automatically with the helpers: `RECORD=1 ~/trakr_play.sh` and
+  `RECORD=1 ~/trakr_train_gl.sh 150` (60 s clips; `RECORD=<seconds>` for other lengths) (training in the GL viewer with 16 of the 2048 envs drawn; drawing all of
   them drops the viewer to ~2 FPS and stalls training).
   60 s is ~33 MB with NVENC. Fetch with `scp <instance>:outputs/train/*.mp4 .` or `brev copy`.
 

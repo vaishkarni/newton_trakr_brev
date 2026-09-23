@@ -320,11 +320,16 @@ cat > "$TARGET_HOME/trakr_common.sh" <<'EOF'
 # sourced by the trakr_*.sh helpers
 export DISPLAY=:0 OMNI_KIT_ACCEPT_EULA=YES ISAACLAB_PATH=$HOME/IsaacLab TRAKR_PATH=$HOME/newton_trakr_brev
 cd "$ISAACLAB_PATH"
-# RECORD=<seconds>: once the Newton Viewer window is up, record it with ~/trakr_record.sh (needs --viz newton for training)
-if [ -n "${RECORD:-}" ]; then
-  ( for i in $(seq 1 180); do xwininfo -root -tree 2>/dev/null | grep -q "Newton Viewer" && break; sleep 1; done
-    sleep 5; ~/trakr_record.sh "$RECORD" ) > "$HOME/outputs/last_record.log" 2>&1 &
-fi
+# RECORD=1 (or yes/true, or a number of seconds): once the Newton Viewer window is up, record it with
+# ~/trakr_record.sh. Default clip length is 60 s. Training must run in the GL viewer (trakr_train_gl.sh).
+case "${RECORD:-}" in
+  ''|0|no|false) ;;
+  *)
+    case "$RECORD" in *[!0-9]*|1) REC_SEC=60 ;; *) REC_SEC=$RECORD ;; esac
+    ( for i in $(seq 1 180); do xwininfo -root -tree 2>/dev/null | grep -q "Newton Viewer" && break; sleep 1; done
+      sleep 5; ~/trakr_record.sh "$REC_SEC" ) > "$HOME/outputs/last_record.log" 2>&1 &
+    ;;
+esac
 EOF
 cat > "$TARGET_HOME/trakr_train.sh" <<'EOF'
 #!/bin/bash
@@ -349,7 +354,7 @@ cat > "$TARGET_HOME/trakr_train_gl.sh" <<'EOF'
 #!/bin/bash
 # Training in the Newton OpenGL viewer on the noVNC desktop (recordable with RECORD=<sec> or ~/trakr_record.sh).
 # Only the first WORLDS envs are drawn (TRAKR_VIZ_WORLDS): drawing all 2048 drops the viewer to ~2 FPS and stalls training.
-# Usage: RECORD=60 ~/trakr_train_gl.sh [iters=300] [num_envs=2048] [worlds=16]
+# Usage: RECORD=1 ~/trakr_train_gl.sh [iters=300] [num_envs=2048] [worlds=16]   (RECORD=1 -> 60 s clip)
 set -e; source ~/trakr_common.sh
 IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
 export TRAKR_VIZ_WORLDS=$WORLDS TRAKR_NUM_ENVS=$NE   # cap + camera aim via the env config (trakr_locomotion/rough_env_cfg.py)
@@ -393,7 +398,7 @@ cat > "$TARGET_HOME/trakr_record.sh" <<'EOF'
 # detected from what is running: train (train.py), play (play.py) or desktop (nothing). 30 fps, captured on
 # the node, so the clip is smooth even when noVNC looks choppy. NVENC when available, else libx264.
 # Usage: ~/trakr_record.sh [seconds=60] [name=trakr_<mode>]   (run in a 2nd terminal while the viewer is open,
-#        or let the helpers start it: RECORD=60 ~/trakr_play.sh / RECORD=60 ~/trakr_train.sh 100 2048 --viz newton)
+#        or let the helpers start it: RECORD=1 ~/trakr_play.sh / RECORD=1 ~/trakr_train_gl.sh 150  (RECORD=<sec> for other lengths))
 set -e
 SEC=${1:-60}; NAME=${2:-}
 export DISPLAY=:0
@@ -447,8 +452,8 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_play_web.sh 16 --checkpoint ~/IsaacLab/logs/rsl_rl/trakr_flat/<run>/model_299.pt
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
     ~/trakr_record.sh            # 2nd terminal: 60 s clip of the viewer -> ~/outputs/play/ or ~/outputs/train/ (auto-detected)
-    RECORD=60 ~/trakr_play.sh    # or let the helper record automatically once the viewer window is up
-    RECORD=60 ~/trakr_train_gl.sh 150   # training in the GL viewer (16 of 2048 envs drawn), recorded to ~/outputs/train/
+    RECORD=1 ~/trakr_play.sh     # or let the helper record 60 s automatically once the viewer window is up (RECORD=<sec> for other lengths)
+    RECORD=1 ~/trakr_train_gl.sh 150    # training in the GL viewer (16 of 2048 envs drawn), 60 s clip in ~/outputs/train/
 
 The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
 Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
