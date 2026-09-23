@@ -397,12 +397,13 @@ cat > "$TARGET_HOME/trakr_record.sh" <<'EOF'
 set -e
 SEC=${1:-60}; NAME=${2:-}
 export DISPLAY=:0
+if pgrep -x ffmpeg >/dev/null; then echo "a recording is already running (pgrep ffmpeg); not starting another"; exit 1; fi
 if pgrep -f "[t]rain.py --task" >/dev/null; then MODE=train
 elif pgrep -f "[p]lay.py --task" >/dev/null; then MODE=play
 else MODE=desktop; fi
 NAME=${NAME:-trakr_$MODE}
 OUT=$HOME/outputs/$MODE; mkdir -p "$OUT"
-F="$OUT/${NAME}_$(date +%Y%m%d_%H%M%S).mp4"
+F="$OUT/${NAME}_$(date +%Y%m%d_%H%M%S)_$$.mp4"   # pid suffix: two recorders started in the same second must not share a file
 RES=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}'); RES=${RES:-1920x1080}
 # probe NVENC with a frame size above its minimum (64x64 is rejected)
 if ffmpeg -hide_banner -loglevel error -f lavfi -i nullsrc=s=320x240 -t 0.2 -c:v h264_nvenc -f null - 2>/dev/null; then
