@@ -20,7 +20,7 @@
 #        trakr_play_web.sh     trained policy in the Viser web viewer on 8080
 #        trakr_play.sh         trained policy in the Newton OpenGL viewer on the noVNC desktop
 #        trakr_tensorboard.sh  TensorBoard on 6006
-#   6. Optional headless warm-up so the first viewer launch is fast; ~/WORKSHOP.md sheet
+#   6. Optional 3-min headless warm-up (warp kernel cache); ~/WORKSHOP.md sheet
 #
 # Launch parameters (Brev "Launch Parameters" -> env vars), all optional:
 #   VNC_PASSWORD    noVNC password (generated if empty; only used when DESKTOP=1)
@@ -31,7 +31,7 @@
 #   ISAACLAB_INSTALL selectors for ./isaaclab.sh --install       [rsl_rl]
 #   TRAKR_REPO      this repo (HTTPS), used only if the kit must be re-cloned into the user's home
 #   TRAKR_REF       branch/tag/commit to check out                [main]
-#   WARMUP          1 = short headless play to cache Kit extensions + warp kernels [1]
+#   WARMUP          1 = 3-min headless play to warm the warp kernel cache [1]
 #   SCREEN          virtual desktop resolution                    [1920x1080]
 #   TARGET_USER     login user that owns everything               [auto: sudo user / ubuntu / first /home]
 # =============================================================================
@@ -365,9 +365,9 @@ chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"/trakr_*.sh
 
 # ------------------------------------------------- 8. warm-up (headless; caches Kit extensions + warp kernels)
 if [ "$WARMUP" = "1" ]; then
-  log "Warm-up: headless play for up to 8 min (first Kit start loads extensions / compiles kernels) ..."
+  log "Warm-up: headless play for up to 3 min (compiles warp kernels, caches the policy export) ..."
   set +e
-  in_venv "cd '$LAB' && timeout 480 ./isaaclab.sh -p '$TRAKR/scripts/play.py' --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs 16 presets=newton --checkpoint '$TRAKR/exported/model_299.pt'" >>"$LOG" 2>&1
+  in_venv "cd '$LAB' && timeout 180 ./isaaclab.sh -p '$TRAKR/scripts/play.py' --task Isaac-Velocity-Flat-Trakr-Play-v0 --num_envs 16 presets=newton --checkpoint '$TRAKR/exported/model_299.pt'" >>"$LOG" 2>&1
   RC=$?; set -e
   if [ $RC -eq 124 ]; then log "Warm-up ran until the timeout (good: the sim loop was running)";
   elif [ $RC -eq 0 ]; then log "Warm-up finished";
@@ -392,7 +392,7 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
 
 The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
-First launch takes 1-3 min (Kit extensions + warp kernel compile), later launches ~30 s.
+Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
 The Viser page is empty until the sim loop starts; reload it if it was opened too early.
 Newton GL viewer keys: W/A/S/D move, Q/E down/up, left-drag rotate, scroll zoom, H sidebar, ESC quit.
 Rough terrain: --task Isaac-Velocity-Rough-Trakr-v0 / -Play-v0.

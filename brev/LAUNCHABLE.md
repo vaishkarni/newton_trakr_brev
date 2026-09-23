@@ -44,12 +44,26 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 7. Compute: as above. Name `newton-trakr-locomotion`, description "Isaac Lab 3.0 beta + Newton:
    Trakr quadruped locomotion, live in the browser". Access: anyone with the link. Create, copy the URL.
 
-## Dry run (do it the day before; expect 25-40 min to DONE)
+## Verified 2026-09-23 (Brev instance on Crusoe `l40s-48gb.1x`, driver 565.57.01)
+
+| Step | Result |
+|---|---|
+| `brev-setup.sh` to `=== DONE` | ~10 min (isaacsim wheels 46 s on that network, Isaac Lab install 40 s, 3-min warm-up) |
+| `~/trakr_play_web.sh` | Viser on 8080, 16 robots walking with the shipped policy |
+| `~/trakr_play.sh` | Newton Viewer window on the noVNC desktop, 62 FPS, 16 envs |
+| `~/trakr_train.sh 40` | 0.7 s/iteration at 2048 envs (300 iterations = ~3.5 min), checkpoints in `logs/rsl_rl/trakr_flat/<run>/` |
+| `~/trakr_tensorboard.sh` | port 6006 |
+| `~/trakr_train_live.sh 30` | Viser on 8080 during training, ~1.2 s/iteration (16 worlds drawn) |
+
+Isaac Lab runs the Newton backend in **kitless mode** (no Kit/RTX start), so launches take about a minute.
+noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs at 60+ FPS on the node.
+
+## Dry run (expect 10-15 min to DONE on a fast network, up to 40 min elsewhere)
 
 1. Deploy from the share URL. In the instance terminal: `tail -f /var/log/trakr-brev-setup.log`
    until `=== DONE`. Checkpoints: `Trakr USD assets OK`, `isaacsim: 6.0.0...`, `Python packages: ... newton 1.0.0; mujoco-warp 3.5.0.2 ... viser`,
    `Trakr Gym tasks registered`, warm-up line.
-2. `~/trakr_play_web.sh` -> open the **viewer** link. 16 robots should walk within 1-3 min.
+2. `~/trakr_play_web.sh` -> open the **viewer** link. 16 robots should walk within about 1 min (the shipped policy `exported/model_299.pt` is used unless you pass `--checkpoint`).
 3. `~/trakr_train_live.sh 100` -> the viewer shows the first 16 envs while training (they fall,
    then start walking within ~50 iterations). Ctrl-C when done.
 4. `~/trakr_train.sh 300` (headless, ~4-5 min) + `~/trakr_tensorboard.sh` -> **tensorboard** link.
@@ -69,6 +83,10 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 - Headless training (`~/trakr_train.sh`) is the fastest way to get a policy; play it afterwards.
 
 ## Troubleshooting
+
+Fixed during the dry run (all in this repo now): uv could not resolve isaacsim (`--index-strategy unsafe-best-match`
+added), Xorg found no GPU when the PCI domain is not 0 (BusID now `PCI:bus@domain:dev:fn`), `import cli_args` failed
+in the wrapper scripts (sys.path fix in `scripts/*.py`), and play.py needs `--checkpoint` (helpers default to `exported/model_299.pt`).
 
 - `isaacsim install failed`: check RAM/disk in the log; rerun `sudo -E bash ~/newton_trakr_brev/brev/brev-setup.sh` (idempotent).
 - Viser page blank: the sim has not started yet (wait for "Viser server running" in the terminal) or a
