@@ -58,8 +58,8 @@ def _capped_visualizer_cfgs(num_envs: int, env_spacing: float) -> list:
         first = origins[: min(n, num_envs)]
         c = first.mean(0).tolist()
         span = (first.max(0).values - first.min(0).values).tolist()
-        # view the drawn group from the side perpendicular to its longer extent
-        off = (0.0, -18.0, 8.0) if span[0] >= span[1] else (-18.0, 0.0, 8.0)
+        # low diagonal view of the drawn row (they sit 2.5 m apart): near robots large, far ones receding
+        off = (-6.0, -8.0, 3.5) if span[0] >= span[1] else (-8.0, -6.0, 3.5)
         cam_tgt = (c[0], c[1], 0.3)
         cam_pos = (c[0] + off[0], c[1] + off[1], off[2])
     except Exception:  # noqa: BLE001 - camera placement is best-effort
