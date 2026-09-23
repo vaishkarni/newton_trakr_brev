@@ -67,7 +67,8 @@ def _capped_visualizer_cfgs(num_envs: int, env_spacing: float) -> list:
         except (ImportError, AttributeError):
             continue
         kwargs = {"max_worlds": n}
-        if cam_pos is not None and hasattr(cfg_cls, "camera_position"):
+        # configclass strips class attributes, so check the dataclass fields instead of hasattr()
+        if cam_pos is not None and "camera_position" in getattr(cfg_cls, "__dataclass_fields__", {}):
             kwargs.update(camera_position=cam_pos, camera_target=cam_tgt)
         cfgs.append(cfg_cls(**kwargs))
     return cfgs
