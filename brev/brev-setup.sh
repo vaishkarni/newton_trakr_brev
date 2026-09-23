@@ -340,7 +340,7 @@ cat > "$TARGET_HOME/trakr_train_live.sh" <<'EOF'
 # Only the first WORLDS envs are drawn; training is slower than headless. Usage: ~/trakr_train_live.sh [iters=300] [num_envs=2048] [worlds=16]
 set -e; source ~/trakr_common.sh
 IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
-export TRAKR_VIZ_WORLDS=$WORLDS   # cap is applied via the env config (see trakr_locomotion/rough_env_cfg.py)
+export TRAKR_VIZ_WORLDS=$WORLDS TRAKR_NUM_ENVS=$NE   # cap + camera aim via the env config (trakr_locomotion/rough_env_cfg.py)
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
   --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
   --viz viser --visualizer_max_worlds "$WORLDS" "$@"
@@ -352,7 +352,7 @@ cat > "$TARGET_HOME/trakr_train_gl.sh" <<'EOF'
 # Usage: RECORD=60 ~/trakr_train_gl.sh [iters=300] [num_envs=2048] [worlds=16]
 set -e; source ~/trakr_common.sh
 IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
-export TRAKR_VIZ_WORLDS=$WORLDS   # cap is applied via the env config (see trakr_locomotion/rough_env_cfg.py)
+export TRAKR_VIZ_WORLDS=$WORLDS TRAKR_NUM_ENVS=$NE   # cap + camera aim via the env config (trakr_locomotion/rough_env_cfg.py)
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
   --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
   --viz newton --visualizer_max_worlds "$WORLDS" "$@"
@@ -363,6 +363,7 @@ cat > "$TARGET_HOME/trakr_play_web.sh" <<'EOF'
 # Usage: ~/trakr_play_web.sh [num_envs=16] [extra args, e.g. --checkpoint path]
 set -e; source ~/trakr_common.sh
 NUM=${1:-16}; shift || true
+export TRAKR_NUM_ENVS=$NUM
 # Isaac Lab's play.py otherwise looks for a run under logs/rsl_rl/trakr_flat; default to the shipped policy
 CKPT=(); case " $* " in *" --checkpoint "*) ;; *) CKPT=(--checkpoint "$TRAKR_PATH/exported/model_299.pt");; esac
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/play.py" \
@@ -374,6 +375,7 @@ cat > "$TARGET_HOME/trakr_play.sh" <<'EOF'
 # Usage: ~/trakr_play.sh [num_envs=16] [extra args, e.g. --checkpoint path]
 set -e; source ~/trakr_common.sh
 NUM=${1:-16}; shift || true
+export TRAKR_NUM_ENVS=$NUM
 # Isaac Lab's play.py otherwise looks for a run under logs/rsl_rl/trakr_flat; default to the shipped policy
 CKPT=(); case " $* " in *" --checkpoint "*) ;; *) CKPT=(--checkpoint "$TRAKR_PATH/exported/model_299.pt");; esac
 exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/play.py" \

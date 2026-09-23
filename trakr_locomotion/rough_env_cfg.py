@@ -18,7 +18,14 @@ from trakr_locomotion.trakr_cfg import TRAKR_CFG
 
 
 def _cli_num_envs(default: int) -> int:
-    """``--num_envs`` from the command line (train.py/play.py apply it after ``__post_init__``)."""
+    """The env count the run will actually use.
+
+    train.py/play.py apply ``--num_envs`` after ``__post_init__``, and Isaac Lab's Hydra wrapper strips
+    it from ``sys.argv`` before the config is built, so the helpers pass it as ``TRAKR_NUM_ENVS``.
+    """
+    env_val = os.environ.get("TRAKR_NUM_ENVS")
+    if env_val:
+        return int(env_val)
     argv = sys.argv
     for i, a in enumerate(argv):
         if a == "--num_envs" and i + 1 < len(argv):
