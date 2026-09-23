@@ -8,10 +8,14 @@ Run via the Isaac Lab python launcher, e.g.:
 """
 import os
 import runpy
+import sys
 
 import trakr_locomotion  # noqa: F401  -- registers the Gym tasks (lazy string entry points)
 
 _ISAACLAB = os.environ.get("ISAACLAB_PATH")
 assert _ISAACLAB, "Set ISAACLAB_PATH to your IsaacLab checkout."
 _TARGET = os.path.join(_ISAACLAB, "scripts", "reinforcement_learning", "rsl_rl", "train.py")
+# Isaac Lab's rsl_rl scripts do `import cli_args` (a sibling module); run_path() does not add
+# the script's directory to sys.path, so do it here.
+sys.path.insert(0, os.path.dirname(_TARGET))
 runpy.run_path(_TARGET, run_name="__main__")
