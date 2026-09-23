@@ -110,8 +110,10 @@ dpkg -s "xserver-xorg-video-nvidia-${DRV_MAJOR}" >/dev/null 2>&1 || \
   apt-get install -y -qq "xserver-xorg-video-nvidia-${DRV_MAJOR}" >>"$LOG" 2>&1 || \
   log "WARN: could not install xserver-xorg-video-nvidia-${DRV_MAJOR}; Xorg may fall back to software"
 
-BUSID=$(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | head -1)   # 00000000:01:00.0
-B=$((16#$(echo "$BUSID" | cut -d: -f2))); D=$((16#$(echo "$BUSID" | cut -d: -f3 | cut -d. -f1))); F=$(echo "$BUSID" | cut -d. -f2)
+BUSID=$(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | head -1)   # 00000000:01:00.0 (domain:bus:dev.fn)
+DOM=$((16#$(echo "$BUSID" | cut -d: -f1))); B=$((16#$(echo "$BUSID" | cut -d: -f2))); D=$((16#$(echo "$BUSID" | cut -d: -f3 | cut -d. -f1))); F=$(echo "$BUSID" | cut -d. -f2)
+# Xorg BusID syntax is PCI:bus@domain:device:function; the domain is not 0 on some clouds (Crusoe: 0002:00:01.0)
+if [ "$DOM" -ne 0 ]; then XBUSID="PCI:$B@$DOM:$D:$F"; else XBUSID="PCI:$B:$D:$F"; fi
 W=${SCREEN%x*}; H=${SCREEN#*x}
 cat > /etc/X11/xorg.conf <<EOF
 Section "ServerLayout"
@@ -121,7 +123,7 @@ EndSection
 Section "Device"
     Identifier "Device0"
     Driver "nvidia"
-    BusID "PCI:$B:$D:$F"
+    BusID "$XBUSID"
     Option "AllowEmptyInitialConfiguration" "True"
 EndSection
 Section "Monitor"
@@ -138,7 +140,7 @@ Section "Screen"
     EndSubSection
 EndSection
 EOF
-log "xorg.conf written for GPU $BUSID, virtual screen ${W}x${H}"
+log "xorg.conf written for GPU $BUSID (BusID $XBUSID), virtual screen ${W}x${H}"
 
 install -d -m 700 -o "$TARGET_USER" -g "$TARGET_USER" "$TARGET_HOME/.vnc"
 if [ -n "${VNC_PASSWORD:-}" ]; then
@@ -263,7 +265,10 @@ in_venv() { as_user "cd '$LAB' && source env_isaaclab/bin/activate && export PAT
 
 if ! in_venv "python -c 'import isaacsim' 2>/dev/null"; then
   log "Installing isaacsim[all,extscache]==$ISAACSIM_VER (several GB, 5-15 min) ..."
-  in_venv "'$UV' pip install --upgrade pip && '$UV' pip install 'isaacsim[all,extscache]==$ISAACSIM_VER' --extra-index-url https://pypi.nvidia.com" >>"$LOG" 2>&1 \
+  # --index-strategy unsafe-best-match: isaacsim-core pins mujoco-usd-converter==0.1.0, which only PyPI has,
+  # while the package also exists (other versions) on pypi.nvidia.com; uv's default first-index rule then fails.
+  # This merges the indexes exactly like plain pip does.
+  in_venv "'$UV' pip install --upgrade pip && '$UV' pip install 'isaacsim[all,extscache]==$ISAACSIM_VER' --extra-index-url https://pypi.nvidia.com --index-strategy unsafe-best-match" >>"$LOG" 2>&1 \
     || { log "ERROR: isaacsim install failed (see $LOG)"; exit 1; }
 fi
 log "isaacsim: $(in_venv "'$UV' pip show isaacsim 2>/dev/null | awk '/^Version/{print \$2}'")"
