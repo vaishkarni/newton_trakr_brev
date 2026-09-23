@@ -20,7 +20,7 @@
 #        trakr_play_web.sh     trained policy in the Viser web viewer on 8080
 #        trakr_play.sh         trained policy in the Newton OpenGL viewer on the noVNC desktop
 #        trakr_tensorboard.sh  TensorBoard on 6006
-#        trakr_record.sh       record the desktop (GL viewer) to ~/outputs/*.mp4 (ffmpeg x11grab + NVENC)
+#        trakr_record.sh       record the GL viewer to ~/outputs/{train,play}/*.mp4 (60 s, ffmpeg x11grab + NVENC)
 #   6. Optional 3-min headless warm-up (warp kernel cache); ~/WORKSHOP.md sheet
 #
 # Launch parameters (Brev "Launch Parameters" -> env vars), all optional:
@@ -319,6 +319,11 @@ cat > "$TARGET_HOME/trakr_common.sh" <<'EOF'
 # sourced by the trakr_*.sh helpers
 export DISPLAY=:0 OMNI_KIT_ACCEPT_EULA=YES ISAACLAB_PATH=$HOME/IsaacLab TRAKR_PATH=$HOME/newton_trakr_brev
 cd "$ISAACLAB_PATH"
+# RECORD=<seconds>: once the Newton Viewer window is up, record it with ~/trakr_record.sh (needs --viz newton for training)
+if [ -n "${RECORD:-}" ]; then
+  ( for i in $(seq 1 180); do xwininfo -root -tree 2>/dev/null | grep -q "Newton Viewer" && break; sleep 1; done
+    sleep 5; ~/trakr_record.sh "$RECORD" ) > "$HOME/outputs/last_record.log" 2>&1 &
+fi
 EOF
 cat > "$TARGET_HOME/trakr_train.sh" <<'EOF'
 #!/bin/bash
@@ -368,13 +373,19 @@ exec ./isaaclab.sh -p -m tensorboard.main --logdir logs/rsl_rl --host 0.0.0.0 --
 EOF
 cat > "$TARGET_HOME/trakr_record.sh" <<'EOF'
 #!/bin/bash
-# Record the VM desktop (e.g. the Newton GL viewer from ~/trakr_play.sh) to ~/outputs/<name>_<stamp>.mp4.
-# Captured on the node at 30 fps, so the clip is smooth even when noVNC looks choppy.
-# Usage: ~/trakr_record.sh [seconds=20] [name=trakr]     (run it in a second terminal while the viewer is open)
+# Record the VM desktop (the Newton GL viewer) to ~/outputs/<mode>/<name>_<stamp>.mp4, where <mode> is
+# detected from what is running: train (train.py), play (play.py) or desktop (nothing). 30 fps, captured on
+# the node, so the clip is smooth even when noVNC looks choppy. NVENC when available, else libx264.
+# Usage: ~/trakr_record.sh [seconds=60] [name=trakr_<mode>]   (run in a 2nd terminal while the viewer is open,
+#        or let the helpers start it: RECORD=60 ~/trakr_play.sh / RECORD=60 ~/trakr_train.sh 100 2048 --viz newton)
 set -e
-SEC=${1:-20}; NAME=${2:-trakr}
+SEC=${1:-60}; NAME=${2:-}
 export DISPLAY=:0
-OUT=$HOME/outputs; mkdir -p "$OUT"
+if pgrep -f "[t]rain.py --task" >/dev/null; then MODE=train
+elif pgrep -f "[p]lay.py --task" >/dev/null; then MODE=play
+else MODE=desktop; fi
+NAME=${NAME:-trakr_$MODE}
+OUT=$HOME/outputs/$MODE; mkdir -p "$OUT"
 F="$OUT/${NAME}_$(date +%Y%m%d_%H%M%S).mp4"
 RES=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}'); RES=${RES:-1920x1080}
 # probe NVENC with a frame size above its minimum (64x64 is rejected)
@@ -383,12 +394,12 @@ if ffmpeg -hide_banner -loglevel error -f lavfi -i nullsrc=s=320x240 -t 0.2 -c:v
 else
   ENC=(-c:v libx264 -preset veryfast -crf 20)       # CPU fallback
 fi
-echo "recording $RES for ${SEC}s -> $F (${ENC[1]})"
+echo "recording [$MODE] $RES for ${SEC}s -> $F (${ENC[1]})"
 ffmpeg -hide_banner -loglevel error -y -f x11grab -framerate 30 -video_size "$RES" -i :0 -t "$SEC" "${ENC[@]}" -pix_fmt yuv420p -movflags +faststart "$F"
 echo "saved $F ($(du -h "$F" | cut -f1))"
 EOF
 chmod +x "$TARGET_HOME"/trakr_*.sh
-install -d -o "$TARGET_USER" -g "$TARGET_USER" "$TARGET_HOME/outputs"
+install -d -o "$TARGET_USER" -g "$TARGET_USER" "$TARGET_HOME/outputs" "$TARGET_HOME/outputs/train" "$TARGET_HOME/outputs/play"
 chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME"/trakr_*.sh
 
 # ------------------------------------------------- 8. warm-up (headless; caches Kit extensions + warp kernels)
@@ -418,8 +429,9 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_tensorboard.sh       # curves on the 'tensorboard' link
     ~/trakr_play_web.sh 16 --checkpoint ~/IsaacLab/logs/rsl_rl/trakr_flat/<run>/model_299.pt
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
-    ~/trakr_record.sh 20         # in a 2nd terminal: record the desktop for 20 s -> ~/outputs/trakr_<stamp>.mp4
-    ~/trakr_train.sh 100 2048 --viz newton   # training in the GL viewer (recordable the same way)
+    ~/trakr_record.sh            # 2nd terminal: 60 s clip of the viewer -> ~/outputs/play/ or ~/outputs/train/ (auto-detected)
+    RECORD=60 ~/trakr_play.sh    # or let the helper record automatically once the viewer window is up
+    RECORD=60 ~/trakr_train.sh 150 2048 --viz newton   # training in the GL viewer, recorded to ~/outputs/train/
 
 The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
 Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
@@ -427,7 +439,7 @@ The Viser page is empty until the sim loop starts; reload it if it was opened to
 Newton GL viewer keys: W/A/S/D move, Q/E down/up, left-drag rotate, scroll zoom, H sidebar, ESC quit.
 Rough terrain: --task Isaac-Velocity-Rough-Trakr-v0 / -Play-v0.
 
-Clips in ~/outputs are smooth 30 fps captures made on the node (noVNC playback may look choppy).
+Clips in ~/outputs/{train,play} are smooth 30 fps captures made on the node (noVNC playback may look choppy).
 Download: brev copy or scp from your laptop, e.g.  scp <instance>:outputs/trakr_*.mp4 .
 Paths: Isaac Lab ~/IsaacLab (venv env_isaaclab, launcher ./isaaclab.sh -p), repo ~/newton_trakr_brev.
 presets=newton is required on Sim 6.0. Setup log: $LOG. Desktop service: gpu-desktop.

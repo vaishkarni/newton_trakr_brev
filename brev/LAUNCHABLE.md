@@ -81,10 +81,11 @@ noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs
 - **Newton OpenGL viewer (`--viz newton`)** is a native window, so it needs the noVNC desktop
   (`DESKTOP=1`, port 6080). Fastest and prettiest, but heavier to set up.
 - Headless training (`~/trakr_train.sh`) is the fastest way to get a policy; play it afterwards.
-- **Video clips:** `~/trakr_record.sh [seconds=20] [name]` records the VM desktop (the Newton GL viewer) with
-  ffmpeg x11grab + NVENC at 30 fps into `~/outputs/<name>_<stamp>.mp4`. Run it in a second terminal while
-  `~/trakr_play.sh` or `~/trakr_train.sh 100 2048 --viz newton` is on screen. 20 s is enough for a gait clip
-  (~20 MB); use 60-120 s for a training clip. Fetch with `scp <instance>:outputs/*.mp4 .` or `brev copy`.
+- **Video clips:** `~/trakr_record.sh [seconds=60] [name]` records the VM desktop (the Newton GL viewer) with
+  ffmpeg x11grab + NVENC at 30 fps. It detects what is running and files the clip under `~/outputs/train/` or
+  `~/outputs/play/`. Or start the recording automatically with the helpers: `RECORD=60 ~/trakr_play.sh` and
+  `RECORD=60 ~/trakr_train.sh 150 2048 --viz newton` (training must be in the GL viewer to be recordable).
+  60 s is ~33 MB with NVENC. Fetch with `scp <instance>:outputs/train/*.mp4 .` or `brev copy`.
 
 ## Troubleshooting
 
