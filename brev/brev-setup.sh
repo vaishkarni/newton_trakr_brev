@@ -223,8 +223,13 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 systemctl enable gpu-desktop.service >/dev/null 2>&1
-systemctl restart gpu-desktop.service || true
-sleep 2
+# do not kill a running desktop session (and the viewer windows on it) on a rerun
+if systemctl is-active --quiet gpu-desktop.service && ss -tln | grep -q ":6080 "; then
+  log "gpu-desktop already running; not restarting it (run ~/start-desktop.sh to force)"
+else
+  systemctl restart gpu-desktop.service || true
+  sleep 2
+fi
 ss -tlnp | grep -q ":6080" && log "noVNC listening on 6080" || log "WARN: noVNC not listening; check /tmp/xorg.log and journalctl -u gpu-desktop"
 else
   log "DESKTOP=0: skipping XFCE/noVNC (web viewers only)"
@@ -372,7 +377,8 @@ export DISPLAY=:0
 OUT=$HOME/outputs; mkdir -p "$OUT"
 F="$OUT/${NAME}_$(date +%Y%m%d_%H%M%S).mp4"
 RES=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}'); RES=${RES:-1920x1080}
-if ffmpeg -hide_banner -loglevel error -f lavfi -i nullsrc=s=64x64 -t 0.1 -c:v h264_nvenc -f null - 2>/dev/null; then
+# probe NVENC with a frame size above its minimum (64x64 is rejected)
+if ffmpeg -hide_banner -loglevel error -f lavfi -i nullsrc=s=320x240 -t 0.2 -c:v h264_nvenc -f null - 2>/dev/null; then
   ENC=(-c:v h264_nvenc -preset p4 -b:v 8M)          # GPU encoder
 else
   ENC=(-c:v libx264 -preset veryfast -crf 20)       # CPU fallback
