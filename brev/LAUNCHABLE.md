@@ -54,7 +54,7 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 | `~/trakr_train.sh 40` | 0.7 s/iteration at 2048 envs (300 iterations = ~3.5 min), checkpoints in `logs/rsl_rl/trakr_flat/<run>/` |
 | `~/trakr_tensorboard.sh` | port 6006 |
 | `~/trakr_train_live.sh 30` | Viser on 8080 during training, ~1.2 s/iteration (16 worlds drawn) |
-| `RECORD=60 ~/trakr_train_gl.sh 150` | 60 s NVENC clip of training in the GL viewer saved to `~/outputs/train/` |
+| `RECORD=60 ~/trakr_train_gl.sh 150 2048 16` | 2048 envs trained at 0.46 s/iteration while the GL viewer draws 16 of them at ~50 FPS; 60 s NVENC clip (18 MB) in `~/outputs/train/` |
 
 Isaac Lab runs the Newton backend in **kitless mode** (no Kit/RTX start), so launches take about a minute.
 noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs at 60+ FPS on the node.
@@ -82,6 +82,11 @@ noVNC playback of the GL viewer looks choppy in the browser; the sim itself runs
 - **Newton OpenGL viewer (`--viz newton`)** is a native window, so it needs the noVNC desktop
   (`DESKTOP=1`, port 6080). Fastest and prettiest, but heavier to set up.
 - Headless training (`~/trakr_train.sh`) is the fastest way to get a policy; play it afterwards.
+- **Drawing a subset of envs:** the Newton GL and Viser viewers draw every env by default, and with 2048 envs the GL
+  viewer falls to ~2 FPS and training to 10 s/iteration. The helpers set `TRAKR_VIZ_WORLDS` (default 16) and
+  `TRAKR_NUM_ENVS`; `trakr_locomotion/rough_env_cfg.py` turns that into visualizer configs with `max_worlds` and a
+  camera aimed at the drawn envs (the first N of the env grid, i.e. one corner). Isaac Lab's own
+  `--visualizer_max_worlds` flag is ignored in kitless mode on v3.0.0-beta (it goes to a Kit settings store).
 - **Video clips:** `~/trakr_record.sh [seconds=60] [name]` records the VM desktop (the Newton GL viewer) with
   ffmpeg x11grab + NVENC at 30 fps. It detects what is running and files the clip under `~/outputs/train/` or
   `~/outputs/play/`. Or start the recording automatically with the helpers: `RECORD=60 ~/trakr_play.sh` and

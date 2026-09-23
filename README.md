@@ -15,7 +15,8 @@ helper scripts so you can **watch the quadruped train live in the browser** (Vis
 8080), follow TensorBoard (6006), and optionally open the Newton OpenGL viewer on a noVNC desktop
 (6080). GPU choice, console steps, launch parameters and a dry-run checklist:
 [`brev/LAUNCHABLE.md`](brev/LAUNCHABLE.md). On the node: `~/trakr_play_web.sh`, `~/trakr_train_live.sh`,
-`~/trakr_train.sh`, `~/trakr_tensorboard.sh`, `~/trakr_play.sh`, and `~/WORKSHOP.md`.
+`~/trakr_train.sh`, `~/trakr_train_gl.sh`, `~/trakr_tensorboard.sh`, `~/trakr_play.sh`, `~/trakr_record.sh`
+(60 s NVENC clips into `~/outputs/train/` or `~/outputs/play/`), and `~/WORKSHOP.md`.
 
 Verified end to end on a Brev L40S instance on 2026-09-23 (setup ~10 min, see the table in `brev/LAUNCHABLE.md`).
 
