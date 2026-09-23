@@ -17,6 +17,7 @@
 #   5. Helper scripts in ~ :
 #        trakr_train.sh        headless training (fastest)
 #        trakr_train_live.sh   training with the Viser web viewer on 8080 (watch it learn)
+#        trakr_train_gl.sh     training in the Newton GL viewer on the desktop (16 worlds drawn)
 #        trakr_play_web.sh     trained policy in the Viser web viewer on 8080
 #        trakr_play.sh         trained policy in the Newton OpenGL viewer on the noVNC desktop
 #        trakr_tensorboard.sh  TensorBoard on 6006
@@ -343,6 +344,17 @@ exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
   --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
   --viz viser --visualizer_max_worlds "$WORLDS" "$@"
 EOF
+cat > "$TARGET_HOME/trakr_train_gl.sh" <<'EOF'
+#!/bin/bash
+# Training in the Newton OpenGL viewer on the noVNC desktop (recordable with RECORD=<sec> or ~/trakr_record.sh).
+# Only the first WORLDS envs are drawn: drawing all 2048 drops the viewer to ~2 FPS and stalls training.
+# Usage: RECORD=60 ~/trakr_train_gl.sh [iters=300] [num_envs=2048] [worlds=16]
+set -e; source ~/trakr_common.sh
+IT=${1:-300}; NE=${2:-2048}; WORLDS=${3:-16}; shift 3 2>/dev/null || shift $# 2>/dev/null || true
+exec ./isaaclab.sh -p "$TRAKR_PATH/scripts/train.py" \
+  --task Isaac-Velocity-Flat-Trakr-v0 --num_envs "$NE" --max_iterations "$IT" presets=newton \
+  --viz newton --visualizer_max_worlds "$WORLDS" "$@"
+EOF
 cat > "$TARGET_HOME/trakr_play_web.sh" <<'EOF'
 #!/bin/bash
 # Trained policy in the Viser web viewer (Brev Secure Link "viewer", port 8080). No desktop needed.
@@ -431,7 +443,7 @@ Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
     ~/trakr_play.sh              # same policy in the Newton OpenGL viewer, on the 'desktop' link
     ~/trakr_record.sh            # 2nd terminal: 60 s clip of the viewer -> ~/outputs/play/ or ~/outputs/train/ (auto-detected)
     RECORD=60 ~/trakr_play.sh    # or let the helper record automatically once the viewer window is up
-    RECORD=60 ~/trakr_train.sh 150 2048 --viz newton   # training in the GL viewer, recorded to ~/outputs/train/
+    RECORD=60 ~/trakr_train_gl.sh 150   # training in the GL viewer (16 of 2048 envs drawn), recorded to ~/outputs/train/
 
 The play helpers load the shipped policy exported/model_299.pt unless you pass --checkpoint.
 Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
