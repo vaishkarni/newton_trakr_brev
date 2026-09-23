@@ -77,3 +77,9 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 - `geom_dataid expects 1 dim`: solver stack drifted; rerun `cd ~/newton_trakr_brev && ISAACLAB_PATH=~/IsaacLab bash setup.sh`.
 - Desktop blank: `sudo systemctl restart gpu-desktop`, check `/tmp/xorg.log`. "CUDA/OpenGL interop" warnings are harmless.
 - `pip check` conflicts in the log are expected (Isaac Lab issue #6200).
+- `RuntimeError: Explicitly requested visualizer(s) ['newton'] could not be configured`: only happens if you
+  changed `ISAACLAB_TAG` to `release/3.0.0` or `develop`, where `newton` became an alias of `newton_gl`
+  (Isaac Lab PR #7960, fixed 2026-09-23). On the default `v3.0.0-beta` tag `--viz newton` is the valid name.
+  Workaround on newer branches: `~/trakr_play.sh 16 --viz newton_gl`.
+- Viser binds 0.0.0.0:8080 without authentication. Behind Brev Secure Links only the link holder reaches it;
+  do not add a raw TCP port rule for 8080 on a public node.
