@@ -7,6 +7,21 @@ Train a velocity-tracking flat-ground locomotion policy for the **Trakr** quadru
 This repo is a self-contained Isaac Lab task package: robot asset, environment + reward config,
 RL agent config, the trained policy, and the setup needed to run it on Isaac Sim 6.0.
 
+## Run it on NVIDIA Brev (one click)
+
+This fork adds a Brev Launchable kit in [`brev/`](brev/): `brev/launchable-setup.sh` (paste into the
+Launchable) installs Isaac Lab v3.0.0-beta + Isaac Sim 6.0.0 (pip), pins the Newton stack, and adds
+helper scripts so you can **watch the quadruped train live in the browser** (Viser web viewer, port
+8080), follow TensorBoard (6006), and optionally open the Newton OpenGL viewer on a noVNC desktop
+(6080). GPU choice, console steps, launch parameters and a dry-run checklist:
+[`brev/LAUNCHABLE.md`](brev/LAUNCHABLE.md). On the node: `~/trakr_play_web.sh`, `~/trakr_train_live.sh`,
+`~/trakr_train.sh`, `~/trakr_tensorboard.sh`, `~/trakr_play.sh`, and `~/WORKSHOP.md`.
+
+The USD assets and demo video are stored as plain git objects in this fork (upstream uses git-LFS)
+so that many Launchable clones do not hit GitHub's LFS bandwidth quota.
+
+---
+
 ## Demo
 
 ![Trakr walking — trained on the NVIDIA Newton engine](media/trakr_walk.gif)

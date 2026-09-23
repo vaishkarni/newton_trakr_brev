@@ -1,2 +1,1 @@
-*.usd filter=lfs diff=lfs merge=lfs -text
-*.mp4 filter=lfs diff=lfs merge=lfs -text
+# Assets are committed as plain git objects in this fork (no LFS) so clones do not use LFS bandwidth.
