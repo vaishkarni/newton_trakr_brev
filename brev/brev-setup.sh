@@ -459,7 +459,8 @@ The play helpers load the shipped policy exported/model_299.pt unless you pass -
 Isaac Lab runs Newton in kitless mode here: a play/train launch takes about 1 min to the first frame.
 The Viser page is empty until the sim loop starts; reload it if it was opened too early.
 Newton GL viewer keys: W/A/S/D move, Q/E down/up, left-drag rotate, scroll zoom, H sidebar, ESC quit.
-Rough terrain: --task Isaac-Velocity-Rough-Trakr-v0 / -Play-v0.
+Rough terrain (Isaac-Velocity-Rough-Trakr-v0) does NOT work on the Newton backend of this Isaac Lab beta
+(contact sensor init fails on generated terrain); the workshop uses the flat task only.
 
 Clips in ~/outputs/{train,play} are smooth 30 fps captures made on the node (noVNC playback may look choppy).
 Download: brev copy or scp from your laptop, e.g.  scp <instance>:outputs/trakr_*.mp4 .

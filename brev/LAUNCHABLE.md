@@ -54,6 +54,8 @@ Disk: **150 GiB** (isaacsim + extscache ~25 GB, torch ~5 GB, Isaac Lab, logs). I
 | `~/trakr_train.sh 40` | 0.7 s/iteration at 2048 envs (300 iterations = ~3.5 min), checkpoints in `logs/rsl_rl/trakr_flat/<run>/` |
 | `~/trakr_tensorboard.sh` | port 6006 |
 | `~/trakr_train_live.sh 30` | Viser on 8080 during training, ~1.2 s/iteration (16 worlds drawn) |
+| Fresh Launchable deploy (second instance, same day) | DONE in 9 min; web play, recorded GL training, TensorBoard, headless 300 iterations (1 min 26 s, reward 25), playing that checkpoint, live Viser training (1.1 s/iteration), GL play clip: all pass |
+| `--task Isaac-Velocity-Rough-Trakr-v0` | **fails** on Newton: `failed to initialize contact sensor ... 'NoneType' object has no attribute 'body_label'` (isaaclab_newton contact sensor on generated terrain). Flat task only. |
 | `RECORD=1 ~/trakr_train_gl.sh 150 2048 16` | 2048 envs trained at 0.46 s/iteration while the GL viewer draws 16 of them at ~50 FPS; 60 s NVENC clip (18 MB) in `~/outputs/train/` |
 
 Isaac Lab runs the Newton backend in **kitless mode** (no Kit/RTX start), so launches take about a minute.
@@ -107,6 +109,7 @@ in the wrapper scripts (sys.path fix in `scripts/*.py`), and play.py needs `--ch
 - `geom_dataid expects 1 dim`: solver stack drifted; rerun `cd ~/newton_trakr_brev && ISAACLAB_PATH=~/IsaacLab bash setup.sh`.
 - Desktop blank: `sudo systemctl restart gpu-desktop`, check `/tmp/xorg.log`. "CUDA/OpenGL interop" warnings are harmless.
 - `pip check` conflicts in the log are expected (Isaac Lab issue #6200).
+- Rough-terrain task: not supported on the Newton backend in v3.0.0-beta (contact sensor init error above). Use the flat task.
 - `RuntimeError: Explicitly requested visualizer(s) ['newton'] could not be configured`: only happens if you
   changed `ISAACLAB_TAG` to `release/3.0.0` or `develop`, where `newton` became an alias of `newton_gl`
   (Isaac Lab PR #7960, fixed 2026-09-23). On the default `v3.0.0-beta` tag `--viz newton` is the valid name.
