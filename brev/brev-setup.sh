@@ -443,6 +443,7 @@ cat > "$TARGET_HOME/WORKSHOP.md" <<EOF
 Secure Links: viewer (8080, Viser web viewer) | tensorboard (6006) | desktop (6080, noVNC; password: $VNC_PASSWORD)
 Direct access if no Secure Links: http://$PUBIP:8080 / :6006 / :6080
 
+Full attendee guide: ~/newton_trakr_brev/WORKSHOP.md (PDF in brev/docs/). Quick version:
 Open a terminal (Brev "Terminal" button, or ssh, or the noVNC desktop) and run:
 
     ~/trakr_play_web.sh          # trained policy, 16 robots -> open the 'viewer' link (Viser, WebGL)

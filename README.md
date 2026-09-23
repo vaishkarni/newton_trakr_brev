@@ -14,7 +14,8 @@ Launchable) installs Isaac Lab v3.0.0-beta + Isaac Sim 6.0.0 (pip), pins the New
 helper scripts so you can **watch the quadruped train live in the browser** (Viser web viewer, port
 8080), follow TensorBoard (6006), and optionally open the Newton OpenGL viewer on a noVNC desktop
 (6080). GPU choice, console steps, launch parameters and a dry-run checklist:
-[`brev/LAUNCHABLE.md`](brev/LAUNCHABLE.md). On the node: `~/trakr_play_web.sh`, `~/trakr_train_live.sh`,
+[`brev/LAUNCHABLE.md`](brev/LAUNCHABLE.md). Attendee guide: [`WORKSHOP.md`](WORKSHOP.md)
+(PDF: [`brev/docs/Trakr-Newton-Workshop-Guide.pdf`](brev/docs/Trakr-Newton-Workshop-Guide.pdf)). On the node: `~/trakr_play_web.sh`, `~/trakr_train_live.sh`,
 `~/trakr_train.sh`, `~/trakr_train_gl.sh`, `~/trakr_tensorboard.sh`, `~/trakr_play.sh`, `~/trakr_record.sh`
 (60 s NVENC clips into `~/outputs/train/` or `~/outputs/play/`), and `~/WORKSHOP.md`.
 
